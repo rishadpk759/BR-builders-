@@ -1,19 +1,23 @@
+
 import React, { useState } from 'react';
 import HomePage from './pages/HomePage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import BuyHomesPage from './pages/BuyHomesPage';
 import RentPropertiesPage from './pages/RentPropertiesPage';
 import ConstructionPortfolioPage from './pages/ConstructionPortfolioPage';
-import ContactPage from './pages/ContactPage'; // New import
-import Header from './components/Header';
+import ContactPage from './pages/ContactPage';
+import AboutUsPage from './pages/AboutUsPage'; // Fix: Changed import back to default import
+import AdminPanelPage from './pages/AdminPanelPage';
+import { Header } from './components/Header';
 import Footer from './components/Footer';
+import { WebsiteContentProvider } from './WebsiteContentContext';
 
-const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'home' | 'property' | 'buy' | 'rent' | 'contact' | 'construction'>('home');
+const AppContent: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<'home' | 'property' | 'buy' | 'rent' | 'contact' | 'construction' | 'about'>('home');
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
 
   const handleNavigateHome = () => {
-    setCurrentPage('home'); // This will now typically lead to the Construction Portfolio
+    setCurrentPage('home');
     setSelectedPropertyId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -37,12 +41,10 @@ const App: React.FC = () => {
   };
 
   const handleNavigateAboutUs = () => {
-    // For now, just scroll to top, or navigate to a dedicated About Us page if it existed
-    setCurrentPage('home'); // or create a specific 'about' page
+    setCurrentPage('about');
     setSelectedPropertyId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
 
   const handleNavigateContact = () => {
     setCurrentPage('contact');
@@ -56,19 +58,19 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Refined active navigation logic
   const getActiveNav = () => {
     if (currentPage === 'construction') return 'construction';
     if (currentPage === 'buy' || currentPage === 'property') return 'buy';
     if (currentPage === 'rent') return 'rent';
     if (currentPage === 'contact') return 'contact';
-    return 'home'; // Default to home (Construction) if no other is active
+    if (currentPage === 'about') return 'about';
+    return 'home';
   }
 
   return (
     <>
       <Header
-        onNavigateHome={handleNavigateHome} // For the actual homepage
+        onNavigateHome={handleNavigateHome}
         onNavigateConstruction={handleNavigateConstruction}
         onNavigateBuy={handleNavigateBuy}
         onNavigateRent={handleNavigateRent}
@@ -86,8 +88,41 @@ const App: React.FC = () => {
       {currentPage === 'contact' && (
         <ContactPage />
       )}
+      {currentPage === 'about' && (
+        <AboutUsPage />
+      )}
       <Footer />
     </>
+  );
+};
+
+const App: React.FC = () => {
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  const toggleAdminPanel = () => {
+    setShowAdminPanel(!showAdminPanel);
+  };
+
+  return (
+    <WebsiteContentProvider>
+      <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+        {showAdminPanel ? (
+          <AdminPanelPage onNavigateWebsite={toggleAdminPanel} />
+        ) : (
+          <>
+            <AppContent />
+            {/* Admin Panel Toggle Button */}
+            <button
+              className="fixed bottom-6 left-6 z-[100] bg-blue-600 text-white size-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+              onClick={toggleAdminPanel}
+              title="Toggle Admin Panel"
+            >
+              <span className="material-symbols-outlined text-3xl">admin_panel_settings</span>
+            </button>
+          </>
+        )}
+      </div>
+    </WebsiteContentProvider>
   );
 };
 

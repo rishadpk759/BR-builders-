@@ -1,19 +1,47 @@
 import React from 'react';
+import { useWebsiteContent } from '../WebsiteContentContext';
 
 interface HeaderProps {
-  onNavigateHome: () => void; // For the actual homepage
-  onNavigateConstruction: () => void; // For the Construction Portfolio Page
+  onNavigateHome: () => void;
+  onNavigateConstruction: () => void;
   onNavigateBuy: () => void;
   onNavigateRent: () => void;
-  onNavigateAboutUs: () => void; // Added handler for About Us
+  onNavigateAboutUs: () => void;
   onNavigateContact: () => void;
-  activeNav: 'home' | 'construction' | 'buy' | 'rent' | 'contact'; // Updated activeNav type
+  activeNav: 'home' | 'construction' | 'buy' | 'rent' | 'contact' | 'about';
 }
 
-const Header: React.FC<HeaderProps> = ({ onNavigateHome, onNavigateConstruction, onNavigateBuy, onNavigateRent, onNavigateAboutUs, onNavigateContact, activeNav }) => {
-  const linkClass = (navItem: 'home' | 'construction' | 'buy' | 'rent' | 'contact') =>
+export const Header: React.FC<HeaderProps> = ({ onNavigateHome, onNavigateConstruction, onNavigateBuy, onNavigateRent, onNavigateAboutUs, onNavigateContact, activeNav }) => {
+  const { content } = useWebsiteContent();
+
+  const handleNavLinkClick = (page: 'home' | 'construction' | 'buy' | 'rent' | 'contact' | 'about') => {
+    switch (page) {
+      case 'home':
+        onNavigateHome();
+        break;
+      case 'construction':
+        onNavigateConstruction();
+        break;
+      case 'buy':
+        onNavigateBuy();
+        break;
+      case 'rent':
+        onNavigateRent();
+        break;
+      case 'about':
+        onNavigateAboutUs();
+        break;
+      case 'contact':
+        onNavigateContact();
+        break;
+      default:
+        onNavigateHome();
+    }
+  };
+
+  const linkClass = (navItemPage: 'home' | 'construction' | 'buy' | 'rent' | 'contact' | 'about') =>
     `text-sm font-medium leading-normal hover:text-primary transition-colors cursor-pointer ${
-      activeNav === navItem ? 'text-primary underline underline-offset-4' : ''
+      activeNav === navItemPage ? 'text-primary underline underline-offset-4' : ''
     }`;
 
   return (
@@ -21,19 +49,16 @@ const Header: React.FC<HeaderProps> = ({ onNavigateHome, onNavigateConstruction,
       <div className="flex items-center justify-between whitespace-nowrap max-w-[1280px] mx-auto">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4 text-charcoal dark:text-white cursor-pointer" onClick={onNavigateHome}>
-            <div className="size-6 text-primary">
-              <svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"></path>
-              </svg>
+            <div className="size-6 text-primary" dangerouslySetInnerHTML={{ __html: content.header.logoSvg }}>
             </div>
-            <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] font-display">BR Builders &amp; Developers</h2>
+            <h2 className="text-lg font-bold leading-tight tracking-[-0.015em] font-display">{content.header.logoText}</h2>
           </div>
           <nav className="hidden md:flex items-center gap-9">
-            <a className={linkClass('construction')} onClick={onNavigateConstruction}>Construction</a>
-            <a className={linkClass('buy')} onClick={onNavigateBuy}>Buy Homes</a>
-            <a className={linkClass('rent')} onClick={onNavigateRent}>Rent Homes</a>
-            <a className={linkClass('home')} onClick={onNavigateAboutUs}>About Us</a> {/* Changed 'href' to 'onClick' and 'home' as a placeholder for about us */}
-            <a className={linkClass('contact')} onClick={onNavigateContact}>Contact</a>
+            {content.header.navLinks.map((link) => (
+              <a key={link.id} className={linkClass(link.page)} onClick={() => handleNavLinkClick(link.page)}>
+                {link.label}
+              </a>
+            ))}
           </nav>
         </div>
         <div className="flex flex-1 justify-end gap-6 items-center">
@@ -42,14 +67,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigateHome, onNavigateConstruction,
               <div className="text-muted-text flex border-none bg-[#f2f4f0] dark:bg-[#2a3620] items-center justify-center pl-4 rounded-l-lg border-r-0">
                 <span className="material-symbols-outlined text-[20px]">search</span>
               </div>
-              <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-charcoal dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f2f4f0] dark:bg-[#2a3620] focus:border-none h-full placeholder:text-muted-text px-4 rounded-l-none border-l-0 pl-2 text-base font-normal" placeholder="Search areas..." value="" />
+              <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-charcoal dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f2f4f0] dark:bg-[#2a3620] focus:border-none h-full placeholder:text-muted-text px-4 rounded-l-none border-l-0 pl-2 text-base font-normal" placeholder={content.header.searchPlaceholder} value="" />
             </div>
           </label>
           <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-6 bg-[#25D366] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-105 active:scale-95 transition-all">
-            <span className="material-symbols-outlined">chat</span>
-            Contact WhatsApp
+            <span className="material-symbols-outlined">{content.header.whatsappChatIcon}</span>
+            {content.header.contactWhatsAppButtonText}
           </button>
-          <div className="hidden sm:block bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border border-[#e0e6db] dark:border-[#2a3620]" data-alt="User profile avatar" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBgrgdRV4Cu0GgCfWOmpNLDllaUocsXN4C1Y1sFB7ycm3AUBwqYR70QP7NcPhga0FrlVA_UyRcbnYMaqRD4iiARkPKdtvQRyZnGAJf9qrLyJeTrJbFrJiBZ-keTgsimVbU1amVuezKepmZZnGAJf9qrLyJeTrJbFrJiBZ-keTgsimVbU1amVuezKepmZJCZw2fqtBRJ5VweHQzxXHCzfVat-gMFF-DndJgc16H0Gzhvt5Oa42bWWTNdfMsgqP6XKUIjP8m1LCfMl4xAu1L2ZYw_Pp8u2D7PxLNt4PjJ02u7fv225cNrBNHmpjDpQ")' }}></div>
+          <div className="hidden sm:block bg-center bg-no-repeat aspect-square bg-cover"></div>
         </div>
       </div>
     </header>

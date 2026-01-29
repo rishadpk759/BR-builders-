@@ -1,24 +1,32 @@
 import React from 'react';
+import { useWebsiteContent } from '../WebsiteContentContext';
 
 const HeroSection: React.FC = () => {
+  const { content } = useWebsiteContent();
+  const heroContent = content.homePage.hero;
+
   return (
-    <section className="p-4">
-      <div className="relative min-h-[580px] rounded-xl overflow-hidden flex flex-col justify-end p-8 md:p-20 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.8)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDNo9HHvrZqYtoLkX9vpXWsnR1L6zFGxDlmZ94uzCGV5wI7itOrWcUXhA90-6DGMrGz_H7VQy8LewAI2vsg6SLN7Hm6iK5Cyg-NcopMhSI_SfT0S_BtBgPidykAB9l1dLh26atXgOjXXIf2ALNCVmUhfCZn8lFZb869CNN-pxPWPMvjTYsQm6kl_YVg8QzaBKjookfmqeHzmhvE-rHOtYseY4TTsb0_JrOvtNkIJcaGMsnb677ZIGuXpTJ0dITXL7vl7QQEMHunqQ')" }}>
-        <div className="max-w-3xl space-y-8">
-          <h1 className="text-white text-4xl md:text-7xl font-extrabold leading-[1.1] tracking-tight">
-            Premium Homes<br />Built &amp; Managed Locally
-          </h1>
-          <p className="text-white/80 text-lg md:text-xl font-light max-w-xl leading-relaxed">
-            Elevating the standard of local living through architectural excellence and meticulous property management.
-          </p>
-          <div className="flex flex-wrap gap-5 pt-4">
-            <button className="bg-primary hover:opacity-90 text-[#141811] text-sm font-bold tracking-widest uppercase h-14 px-10 rounded-lg transition-all">
-              Browse Properties
-            </button>
-            <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 text-sm font-bold tracking-widest uppercase h-14 px-10 rounded-lg transition-all flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">chat</span>
-              WhatsApp
-            </button>
+    <section className="relative w-full overflow-hidden">
+      <div className="max-w-[1280px] mx-auto px-4 py-8 md:py-16">
+        <div className="relative h-[500px] md:h-[600px] w-full rounded-xl overflow-hidden shadow-2xl">
+          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: heroContent.backgroundImage }}>
+          </div>
+          <div className="relative h-full flex flex-col justify-center items-start px-8 md:px-20 max-w-2xl">
+            <span className="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4">{heroContent.tagline}</span>
+            <h1 className="text-white text-4xl md:text-6xl font-black leading-tight tracking-tight mb-6" dangerouslySetInnerHTML={{ __html: heroContent.title }}>
+            </h1>
+            <p className="text-white/90 text-lg md:text-xl font-light leading-relaxed mb-8">
+              {heroContent.description}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <a href={heroContent.primaryButtonLink} className="bg-primary text-charcoal px-8 py-3 rounded-lg text-base font-bold transition-all hover:shadow-lg hover:shadow-primary/30">
+                {heroContent.primaryButtonText}
+              </a>
+              <a href={heroContent.secondaryButtonLink} className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-8 py-3 rounded-lg text-base font-bold hover:bg-white/20 transition-all flex items-center gap-2">
+                <span className="material-symbols-outlined">{heroContent.secondaryButtonIcon}</span>
+                {heroContent.secondaryButtonText}
+              </a>
+            </div>
           </div>
         </div>
       </div>
