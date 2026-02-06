@@ -256,6 +256,12 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
     return await uploadImage(file, 'page-backgrounds', filePath);
   }, [uploadImage]);
 
+  const uploadLogoImage = useCallback(async (file: File, sectionPath: string) => {
+    const fileName = `logo-${sectionPath.replace(/\./g, '-')}-${Date.now()}-${file.name}`;
+    const filePath = `${fileName}`;
+    return await uploadImage(file, 'assets', filePath);
+  }, [uploadImage]);
+
 
   const renderColorClassInput = (label: string, value: string, onChange: (newValue: string) => void, description?: string) => (
     <div className="mb-4">
@@ -282,9 +288,9 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
   );
 
   const renderSectionHeader = (title: string, description?: string) => (
-    <div className="mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
-      <h3 className="text-xl font-semibold text-charcoal dark:text-white">{title}</h3>
-      {description && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{description}</p>}
+    <div className="mb-6 border-b border-gray-100 pb-4">
+      <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+      {description && <p className="text-sm text-gray-600 mt-1">{description}</p>}
     </div>
   );
 
@@ -320,12 +326,46 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
           {array.map((item, index) => {
             const updateItem = (updatedProps: Partial<T>) => updateItemInArray(item.id, updatedProps);
             return (
-              <div key={String(item.id)} className="p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700">
-                <h4 className="font-semibold text-primary mb-2">{String(item[itemLabelField])} (ID: {item.id})</h4>
+              <div key={String(item.id)} className="p-3 border border-gray-300 rounded-md bg-white">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-semibold text-gray-900">{String(item[itemLabelField])} <span className="text-xs text-gray-400">ID: {item.id}</span></h4>
+                  <button
+                    className="text-sm text-red-600 hover:text-red-800 ml-2"
+                    type="button"
+                    onClick={() => {
+                      const currentFullContent = content;
+                      const currentArray = getNestedProperty(currentFullContent, fullPropertyPathToArray) as T[];
+                      const updatedArray = currentArray.filter(a => a.id !== item.id);
+                      const newGlobalContent = setNestedProperty(currentFullContent, fullPropertyPathToArray, updatedArray);
+                      updateGlobalContent(newGlobalContent);
+                    }}
+                    title="Remove item"
+                  >
+                    Remove
+                  </button>
+                </div>
                 {renderItemFields(item, index, updateItem)}
               </div>
             );
           })}
+          <div className="mt-3">
+            <button
+              className="px-3 py-2 rounded border border-gray-300 text-sm bg-white"
+              type="button"
+              onClick={() => {
+                const currentFullContent = content;
+                const currentArray = getNestedProperty(currentFullContent, fullPropertyPathToArray) as T[] || [];
+                const newItem: any = { id: `new-${Date.now()}` };
+                // Try to populate label field if possible
+                newItem[itemLabelField as string] = `New ${title.replace(/s$/,'')}`;
+                const updatedArray = [...currentArray, newItem];
+                const newGlobalContent = setNestedProperty(currentFullContent, fullPropertyPathToArray, updatedArray);
+                updateGlobalContent(newGlobalContent);
+              }}
+            >
+              + Add {title.replace(/s$/,'')}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -630,30 +670,53 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-background-dark text-red-500 text-xl">
-        Error: {error}
-      </div>
-    );
-  }
+  // Show a non-blocking banner when remote content couldn't be loaded,
+  // but avoid showing raw error messages. Always show a friendly message.
+  const errorBanner = error ? (
+    <div className="max-w-full mx-auto my-4 p-3 rounded-md bg-yellow-50 text-yellow-800 text-center">
+      Remote content unavailable — showing fallback content.
+    </div>
+  ) : null;
+
+  // Save / Discard handlers for content changes
+  const handleSave = async () => {
+    try {
+      await updateGlobalContent(content);
+      // small feedback
+      alert('Content saved. Reload the site to see updates.');
+    } catch (e) {
+      console.error('Error saving content:', e);
+      alert('Failed to save content. See console for details.');
+    }
+  };
+
+  const handleDiscard = () => {
+    if (confirm('Discard unsaved changes and reload from server?')) {
+      window.location.reload();
+    }
+  };
 
   return (
-    <div className="min-h-screen flex bg-gray-100 dark:bg-background-dark">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-gray-800 dark:bg-[#192210] text-gray-200 p-4 flex flex-col shadow-lg">
-        <div className="flex items-center gap-2 text-white text-xl font-bold mb-8">
-          <span className="material-symbols-outlined text-3xl text-primary">admin_panel_settings</span>
+      <aside className="w-64 bg-white text-gray-900 p-6 border-r border-gray-200 flex flex-col">
+        <div className="flex items-center gap-2 text-gray-900 text-xl font-semibold mb-6">
+          <span className="material-symbols-outlined text-3xl">admin_panel_settings</span>
           Admin Panel
         </div>
         <nav className="flex-1">
           <ul className="space-y-2">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-              { id: 'properties', label: 'Properties', icon: 'home_work' },
-              { id: 'projects', label: 'Construction Projects', icon: 'engineering' },
-              { id: 'content', label: 'Content Editor', icon: 'edit_document' },
-              // { id: 'settings', label: 'Settings', icon: 'settings' }, // Future feature
+              { id: 'navbar', label: 'Navbar', icon: 'menu' },
+              { id: 'footer', label: 'Footer', icon: 'logout' },
+              { id: 'homePage', label: 'Home Page', icon: 'home' },
+              { id: 'aboutUsPage', label: 'About Page', icon: 'info' },
+              { id: 'contactPage', label: 'Contact Page', icon: 'call' },
+              { id: 'services', label: 'Services', icon: 'work' },
+              { id: 'properties', label: 'Properties List', icon: 'home_work' },
+              { id: 'constructionProjects', label: 'Construction Projects', icon: 'engineering' },
+              { id: 'all', label: 'All Content', icon: 'edit_document' },
             ].map((item) => (
               <li key={item.id}>
                 <button
@@ -662,9 +725,7 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                     setExpandedPropertyId(null); // Collapse any open forms when changing tabs
                     setExpandedProjectId(null);
                   }}
-                  className={`flex items-center w-full p-2 rounded-md transition-colors ${
-                    activeTab === item.id ? 'bg-primary/20 text-primary' : 'hover:bg-gray-700 hover:text-white'
-                  }`}
+                  className={`flex items-center w-full p-2 rounded-md transition-colors ${activeTab === item.id ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-50'}`}
                 >
                   <span className="material-symbols-outlined mr-3">{item.icon}</span>
                   {item.label}
@@ -686,10 +747,15 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
 
       {/* Main Content Area */}
       <main className="flex-1 p-8 overflow-y-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-charcoal dark:text-white capitalize">
+        {errorBanner}
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900 capitalize">
             {activeTab.replace(/([A-Z])/g, ' $1').trim()}
           </h1>
+          <div className="flex items-center gap-3">
+            <button onClick={handleDiscard} className="px-3 py-2 rounded border border-gray-300 text-sm bg-white">Discard</button>
+            <button onClick={handleSave} className="px-3 py-2 rounded bg-black text-white text-sm">Save changes</button>
+          </div>
         </div>
 
         {activeTab === 'dashboard' && (
@@ -708,13 +774,130 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                 <p className="text-4xl font-bold text-charcoal dark:text-white">{constructionProjects.length}</p>
               </div>
               <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-lg border border-purple-200 dark:border-purple-800">
-                <p className className="text-purple-700 dark:text-purple-300 text-lg font-semibold">Content Sections</p>
+                <p className="text-purple-700 dark:text-purple-300 text-lg font-semibold">Content Sections</p>
                 <p className="text-4xl font-bold text-charcoal dark:text-white">{Object.keys(content).length}</p>
               </div>
             </div>
           </section>
         )}
 
+        {activeTab === 'navbar' && (
+          <section className="bg-white p-6 rounded-lg shadow-md">
+            {renderSectionHeader("Header / Navbar")}
+            <AdminInputField label="Logo SVG (HTML)" value={content.header.logoSvg} onChange={(val) => updateSection('header', 'logoSvg', val as string)} type="textarea" rows={5} />
+            <ImageUploader
+              label="Logo Image (PNG/JPG/SVG)"
+              currentImageUrl={content.header.logoImageUrl || ''}
+              bucketName="assets"
+              onImageChange={(url) => updateSection('header', 'logoImageUrl', url)}
+              onFileSelect={(file) => uploadLogoImage(file, 'header.logoImageUrl')}
+              description="Upload a logo image to display instead of the SVG (recommended: 40x40 or similar)."
+            />
+            <AdminInputField label="Search Placeholder" value={content.header.searchPlaceholder} onChange={(val) => updateSection('header', 'searchPlaceholder', val as string)} />
+            <AdminInputField label="WhatsApp Button Text" value={content.header.contactWhatsAppButtonText} onChange={(val) => updateSection('header', 'contactWhatsAppButtonText', val as string)} />
+            <AdminInputField label="WhatsApp Button Link" value={content.header.contactWhatsAppButtonLink || ''} onChange={(val) => updateSection('header', 'contactWhatsAppButtonLink', val as string)} type="url" description="Full URL for the header button (e.g., https://wa.me/12345)" />
+            <AdminInputField label="WhatsApp Chat Icon" value={content.header.whatsappChatIcon} onChange={(val) => updateSection('header', 'whatsappChatIcon', val as string)} description="Material Symbols icon name" />
+
+            {renderArrayEditor<NavLinkData>(
+              "Navigation Links",
+              content.header.navLinks,
+              'header.navLinks',
+              (link, _, updateLink) => (
+                <>
+                  <AdminInputField label="Label" value={link.label} onChange={(val) => updateLink({ label: val as string })} />
+                  <AdminInputField label="Page" value={link.page || ''} onChange={(val) => updateLink({ page: val as any, url: undefined })} type="select" options={[{ value: '', label: '— Select —' }, { value: 'home', label: 'Home' }, { value: 'buy', label: 'Buy' }, { value: 'rent', label: 'Rent' }, { value: 'construction', label: 'Construction' }, { value: 'about', label: 'About Us' }, { value: 'contact', label: 'Contact' }]} />
+                  <AdminInputField label="Or URL (overrides Page)" value={link.url || ''} onChange={(val) => updateLink({ url: val as string, page: undefined })} type="url" description="If set, this URL will be used instead of internal page routing." />
+                </>
+              ),
+              'label'
+            )}
+          </section>
+        )}
+
+        {activeTab === 'footer' && (
+          <section className="bg-white p-6 rounded-lg shadow-md">
+            {renderSectionHeader("Footer")}
+            <AdminInputField label="Logo SVG (HTML)" value={content.footer.logoSvg} onChange={(val) => updateSection('footer', 'logoSvg', val as string)} type="textarea" rows={5} />
+            <ImageUploader
+              label="Footer Logo Image (PNG/JPG/SVG)"
+              currentImageUrl={content.footer.logoImageUrl || ''}
+              bucketName="assets"
+              onImageChange={(url) => updateSection('footer', 'logoImageUrl', url)}
+              onFileSelect={(file) => uploadLogoImage(file, 'footer.logoImageUrl')}
+              description="Upload a footer logo image (optional)."
+            />
+            <AdminInputField label="Description" value={content.footer.description} onChange={(val) => updateSection('footer', 'description', val as string)} type="textarea" rows={3} />
+            <AdminInputField label="Services Title" value={content.footer.servicesTitle} onChange={(val) => updateSection('footer', 'servicesTitle', val as string)} />
+            <AdminInputField label="Company Title" value={content.footer.companyTitle} onChange={(val) => updateSection('footer', 'companyTitle', val as string)} />
+            <AdminInputField label="Newsletter Title" value={content.footer.newsletterTitle} onChange={(val) => updateSection('footer', 'newsletterTitle', val as string)} />
+            <AdminInputField label="Newsletter Description" value={content.footer.newsletterDescription} onChange={(val) => updateSection('footer', 'newsletterDescription', val as string)} />
+
+            {renderArrayEditor<FooterLinkData>(
+              "Services Links",
+              content.footer.servicesLinks,
+              'footer.servicesLinks',
+              (link, _, updateLink) => (
+                <>
+                  <AdminInputField label="Label" value={link.label} onChange={(val) => updateLink({ label: val as string })} />
+                  <AdminInputField label="URL" value={link.url} onChange={(val) => updateLink({ url: val as string })} type="url" />
+                </>
+              ),
+              'label'
+            )}
+
+            {renderArrayEditor<FooterLinkData>(
+              "Company Links",
+              content.footer.companyLinks,
+              'footer.companyLinks',
+              (link, _, updateLink) => (
+                <>
+                  <AdminInputField label="Label" value={link.label} onChange={(val) => updateLink({ label: val as string })} />
+                  <AdminInputField label="URL" value={link.url} onChange={(val) => updateLink({ url: val as string })} type="url" />
+                </>
+              ),
+              'label'
+            )}
+
+            {renderArrayEditor<SocialLinkData>(
+              "Social Links",
+              content.footer.socialLinks,
+              'footer.socialLinks',
+              (link, _, updateLink) => (
+                <>
+                  <AdminInputField label="Icon (text)" value={link.icon} onChange={(val) => updateLink({ icon: val as string })} />
+                  <AdminInputField label="URL" value={link.url} onChange={(val) => updateLink({ url: val as string })} type="url" />
+                </>
+              ),
+              'icon'
+            )}
+          </section>
+        )}
+
+        {activeTab === 'homePage' && (
+          <>
+            {/* Reuse existing Home Page editor from Content tab */}
+            { /* Copy of activeContentTab === 'homePage' block */ }
+            <section className="bg-white p-6 rounded-lg shadow-md">
+              {renderSectionHeader("Home Page - Hero Section")}
+              <AdminInputField label="Tagline" value={content.homePage.hero.tagline} onChange={(val) => updateNestedSection('homePage', 'hero', 'tagline', val as string)} />
+              <AdminInputField label="Title (HTML allowed)" value={content.homePage.hero.title} onChange={(val) => updateNestedSection('homePage', 'hero', 'title', val as string)} type="textarea" rows={3} />
+              <AdminInputField label="Description" value={content.homePage.hero.description} onChange={(val) => updateNestedSection('homePage', 'hero', 'description', val as string)} type="textarea" rows={3} />
+              <AdminInputField label="Primary Button Text" value={content.homePage.hero.primaryButtonText} onChange={(val) => updateNestedSection('homePage', 'hero', 'primaryButtonText', val as string)} />
+              <AdminInputField label="Primary Button Link" value={content.homePage.hero.primaryButtonLink} onChange={(val) => updateNestedSection('homePage', 'hero', 'primaryButtonLink', val as string)} type="url" />
+              <AdminInputField label="Secondary Button Text" value={content.homePage.hero.secondaryButtonText} onChange={(val) => updateNestedSection('homePage', 'hero', 'secondaryButtonText', val as string)} />
+              <AdminInputField label="Secondary Button Icon" value={content.homePage.hero.secondaryButtonIcon} onChange={(val) => updateNestedSection('homePage', 'hero', 'secondaryButtonIcon', val as string)} description="Material Symbols icon name" />
+              <AdminInputField label="Secondary Button Link" value={content.homePage.hero.secondaryButtonLink} onChange={(val) => updateNestedSection('homePage', 'hero', 'secondaryButtonLink', val as string)} type="url" />
+              <ImageUploader
+                label="Background Image (URL or CSS)"
+                currentImageUrl={content.homePage.hero.backgroundImage}
+                bucketName="page-backgrounds"
+                onImageChange={(url) => updateNestedSection('homePage', 'hero', 'backgroundImage', `url('${url}')`)}
+                onFileSelect={(file) => uploadPageImage(file, 'homePage.hero.backgroundImage')}
+                description="Use a direct image URL or a CSS linear-gradient with a URL."
+              />
+            </section>
+          </>
+        )}
         {activeTab === 'content' && (
           <div className="bg-white dark:bg-[#1f2916] p-6 rounded-lg shadow-md">
             <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
@@ -747,8 +930,17 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                 {renderSectionHeader("Header Section")}
                 <AdminInputField label="Logo Text" value={content.header.logoText} onChange={(val) => updateSection('header', 'logoText', val as string)} />
                 <AdminInputField label="Logo SVG (HTML)" value={content.header.logoSvg} onChange={(val) => updateSection('header', 'logoSvg', val as string)} type="textarea" rows={5} />
+                <ImageUploader
+                  label="Logo Image (PNG/JPG/SVG)"
+                  currentImageUrl={content.header.logoImageUrl || ''}
+                  bucketName="assets"
+                  onImageChange={(url) => updateSection('header', 'logoImageUrl', url)}
+                  onFileSelect={(file) => uploadLogoImage(file, 'header.logoImageUrl')}
+                  description="Upload a logo image to display instead of the SVG (recommended: 40x40 or similar)."
+                />
                 <AdminInputField label="Search Placeholder" value={content.header.searchPlaceholder} onChange={(val) => updateSection('header', 'searchPlaceholder', val as string)} />
                 <AdminInputField label="WhatsApp Button Text" value={content.header.contactWhatsAppButtonText} onChange={(val) => updateSection('header', 'contactWhatsAppButtonText', val as string)} />
+                <AdminInputField label="WhatsApp Button Link" value={content.header.contactWhatsAppButtonLink || ''} onChange={(val) => updateSection('header', 'contactWhatsAppButtonLink', val as string)} type="url" description="Full URL for the header button (e.g., https://wa.me/12345)" />
                 <AdminInputField label="WhatsApp Chat Icon" value={content.header.whatsappChatIcon} onChange={(val) => updateSection('header', 'whatsappChatIcon', val as string)} description="Material Symbols icon name" />
 
                 {renderArrayEditor<NavLinkData>(
@@ -758,7 +950,8 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                   (link, _, updateLink) => (
                     <>
                       <AdminInputField label="Label" value={link.label} onChange={(val) => updateLink({ label: val as string })} />
-                      <AdminInputField label="Page" value={link.page} onChange={(val) => updateLink({ page: val as any })} type="select" options={[{ value: 'home', label: 'Home' }, { value: 'buy', label: 'Buy' }, { value: 'rent', label: 'Rent' }, { value: 'construction', label: 'Construction' }, { value: 'about', label: 'About Us' }, { value: 'contact', label: 'Contact' }]} />
+                      <AdminInputField label="Page" value={link.page || ''} onChange={(val) => updateLink({ page: val as any, url: undefined })} type="select" options={[{ value: '', label: '— Select —' }, { value: 'home', label: 'Home' }, { value: 'buy', label: 'Buy' }, { value: 'rent', label: 'Rent' }, { value: 'construction', label: 'Construction' }, { value: 'about', label: 'About Us' }, { value: 'contact', label: 'Contact' }]} />
+                      <AdminInputField label="Or URL (overrides Page)" value={link.url || ''} onChange={(val) => updateLink({ url: val as string, page: undefined })} type="url" description="If set, this URL will be used instead of internal page routing." />
                     </>
                   ),
                   'label'
@@ -771,6 +964,14 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                 {renderSectionHeader("Footer Section")}
                 <AdminInputField label="Logo Text" value={content.footer.logoText} onChange={(val) => updateSection('footer', 'logoText', val as string)} />
                 <AdminInputField label="Logo SVG (HTML)" value={content.footer.logoSvg} onChange={(val) => updateSection('footer', 'logoSvg', val as string)} type="textarea" rows={5} />
+                <ImageUploader
+                  label="Footer Logo Image (PNG/JPG/SVG)"
+                  currentImageUrl={content.footer.logoImageUrl || ''}
+                  bucketName="assets"
+                  onImageChange={(url) => updateSection('footer', 'logoImageUrl', url)}
+                  onFileSelect={(file) => uploadLogoImage(file, 'footer.logoImageUrl')}
+                  description="Upload a footer logo image (optional)."
+                />
                 <AdminInputField label="Description" value={content.footer.description} onChange={(val) => updateSection('footer', 'description', val as string)} type="textarea" rows={3} />
                 <AdminInputField label="Services Title" value={content.footer.servicesTitle} onChange={(val) => updateSection('footer', 'servicesTitle', val as string)} />
                 <AdminInputField label="Company Title" value={content.footer.companyTitle} onChange={(val) => updateSection('footer', 'companyTitle', val as string)} />

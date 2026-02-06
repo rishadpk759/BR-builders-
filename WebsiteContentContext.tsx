@@ -2,19 +2,24 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Supabase Client Initialization
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// Prefer Vite env (import.meta.env) for client-side builds, fallback to process.env for server-side environments.
+const supabaseUrl = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_URL)
+  || process.env.SUPABASE_URL
+  || process.env.VITE_SUPABASE_URL
+  || '';
+const supabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_SUPABASE_ANON_KEY)
+  || process.env.SUPABASE_ANON_KEY
+  || process.env.VITE_SUPABASE_ANON_KEY
+  || '';
 
 let supabase: SupabaseClient | null = null;
 if (supabaseUrl && supabaseAnonKey) {
   supabase = createClient(supabaseUrl, supabaseAnonKey);
+  console.info('Supabase initialized from env.');
 } else {
   console.error(
-    'Supabase Error: SUPABASE_URL and/or SUPABASE_ANON_KEY environment variables are not set. ' +
-    'Data persistence will not work. Please ensure you have set them up correctly ' +
-    '(e.g., in a .env file as VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY if using Vite, ' +
-    'or directly as SUPABASE_URL and SUPABASE_ANON_KEY in your deployment environment, ' +
-    'and also requested in metadata.json).'
+    'Supabase Error: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are not set. ' +
+    'Add them to a .env file at the project root (see project.env/example) and restart the dev server.'
   );
 }
 
@@ -119,7 +124,8 @@ export interface CommitmentItemData {
 export interface NavLinkData {
   id: string;
   label: string;
-  page: 'home' | 'construction' | 'buy' | 'rent' | 'contact' | 'about';
+  page?: 'home' | 'construction' | 'buy' | 'rent' | 'contact' | 'about';
+  url?: string; // Optional: external or internal URL. If present, navigation will use this URL instead of page routing.
 }
 
 export interface FooterLinkData {
@@ -150,14 +156,17 @@ export interface WebsiteContent {
   header: {
     logoText: string;
     logoSvg: string; // New: for custom logo SVG
+    logoImageUrl?: string; // Optional uploaded logo image (png/jpg/svg)
     navLinks: NavLinkData[];
     contactWhatsAppButtonText: string;
+    contactWhatsAppButtonLink?: string;
     searchPlaceholder: string;
     whatsappChatIcon: string;
   };
   footer: {
     logoText: string;
     logoSvg: string; // New: for custom logo SVG
+    logoImageUrl?: string;
     description: string;
     servicesTitle: string;
     servicesLinks: FooterLinkData[];
@@ -455,11 +464,13 @@ const defaultWebsiteContent: WebsiteContent = {
     ],
     searchPlaceholder: "Search for properties...",
     contactWhatsAppButtonText: "Contact WhatsApp",
+    contactWhatsAppButtonLink: "https://wa.me/919876543210",
     whatsappChatIcon: "chat",
   },
   footer: {
     logoText: "BR Builders & Developers",
     logoSvg: `<svg fill="currentColor" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"></path></svg>`,
+    logoImageUrl: "",
     description: "BR Builders & Developers is a premier real estate firm dedicated to crafting exceptional living and working spaces. With a focus on quality, transparency, and client satisfaction, we build legacies.",
     servicesTitle: "Services",
     servicesLinks: [
@@ -813,7 +824,12 @@ export const WebsiteContentProvider: React.FC<{ children: ReactNode }> = ({ chil
     setIsLoading(true);
     setError(null);
     if (!supabase) {
-      setError('Supabase client not initialized. Cannot fetch data.');
+      // Supabase not configured — keep using local default content and avoid showing raw errors to users
+      console.warn('Supabase client not initialized. Using local fallback content.');
+      setError('Remote content unavailable — using local fallback content.');
+      setContent(defaultWebsiteContent);
+      setProperties([]);
+      setConstructionProjects([]);
       setIsLoading(false);
       return;
     }
@@ -899,10 +915,17 @@ export const WebsiteContentProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (projectsError) throw projectsError;
       setConstructionProjects(projectsData ? projectsData.map(row => ({ ...row.data, id: row.id })) : []);
+      // Clear any previous error now that fetching succeeded
+      setError(null);
 
     } catch (err: any) {
-      console.error('Error fetching content:', err.message);
-      setError(err.message || 'Failed to fetch website content.');
+      // Log full error for debugging, but expose a friendly message to the UI.
+      console.error('Error fetching content from Supabase:', err);
+      setError('Unable to load remote content — showing fallback content.');
+      // Ensure the app remains usable with local defaults
+      setContent(defaultWebsiteContent);
+      setProperties([]);
+      setConstructionProjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -941,17 +964,19 @@ export const WebsiteContentProvider: React.FC<{ children: ReactNode }> = ({ chil
         return;
     }
 
-    const { error: updateError } = await supabase
-      .from('website_content_single')
-      .update({ content: updatedContent })
-      .eq('id', currentIdData.id);
-
-    if (updateError) {
-      console.error('Error updating global content:', updateError.message);
-      setError(updateError.message);
-    } else {
+    // Use a stored procedure to update the single-row content to avoid REST field-mapping issues.
+    try {
+      const { error: rpcError } = await supabase.rpc('update_website_content', { new_content: updatedContent });
+      if (rpcError) {
+        console.error('Error updating global content via RPC:', rpcError.message);
+        setError(rpcError.message);
+        return;
+      }
       setContent(updatedContent);
       setError(null);
+    } catch (e: any) {
+      console.error('Unexpected error updating global content via RPC:', e);
+      setError(String(e));
     }
   }, [content]); // Added content to dependencies to ensure latest state is used.
 

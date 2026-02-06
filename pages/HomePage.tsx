@@ -19,13 +19,18 @@ const HomePage: React.FC<HomePageProps> = ({ onPropertyClick }) => {
   if (isLoading) {
     return <main className="max-w-[1200px] mx-auto py-16 text-center text-xl dark:text-white">Loading website content...</main>;
   }
-
-  if (error) {
-    return <main className="max-w-[1200px] mx-auto py-16 text-center text-red-500 text-xl">Error: {error}</main>;
-  }
+ 
+  // When there's an error fetching remote content, show a non-blocking banner
+  // and continue rendering with default/local content to keep the site usable.
+  const errorBanner = error ? (
+    <div className="max-w-[1200px] mx-auto my-6 p-4 rounded-md bg-red-50 text-red-700 text-center">
+      Error loading website content — showing fallback content.
+    </div>
+  ) : null;
 
   return (
     <main className="max-w-[1200px] mx-auto">
+      {errorBanner}
       <HeroSection />
       <StatsSection />
       <ServicesSection />

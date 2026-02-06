@@ -9,9 +9,17 @@ const Footer: React.FC = () => {
       <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="flex items-center gap-3 text-white mb-6">
-            <div className="size-6 text-primary" dangerouslySetInnerHTML={{ __html: content.footer.logoSvg }}>
-            </div>
-            <span className="text-lg font-bold">{content.footer.logoText}</span>
+            {(() => {
+              const raw = content.footer.logoImageUrl || '';
+              const trimmed = raw.trim ? raw.trim() : raw;
+              const m = trimmed.match(/^url\((['"]?)(.*)\1\)$/i);
+              const footerLogoUrl = m ? m[2] : trimmed;
+              return footerLogoUrl ? (
+                <img src={footerLogoUrl} alt={content.footer.logoText} className="w-10 h-10 object-contain" />
+              ) : (
+                <div className="size-6 text-primary" dangerouslySetInnerHTML={{ __html: content.footer.logoSvg }} />
+              );
+            })()}
           </div>
           <p className="text-sm leading-relaxed">{content.footer.description}</p>
         </div>
@@ -53,10 +61,7 @@ const Footer: React.FC = () => {
           ))}
         </div>
       </div>
-      {/* Floating WhatsApp for Mobile */}
-      <a className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white size-14 rounded-full flex items-center justify-center shadow-2xl md:hidden hover:scale-110 transition-transform" href={content.footer.whatsappFloatingLink}>
-        <div dangerouslySetInnerHTML={{ __html: content.footer.whatsappFloatingIconSvg }} />
-      </a>
+      {/* Floating WhatsApp removed — handled via header button */}
     </footer>
   );
 };

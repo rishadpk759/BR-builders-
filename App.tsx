@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import BuyHomesPage from './pages/BuyHomesPage';
@@ -100,8 +100,35 @@ const App: React.FC = () => {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const toggleAdminPanel = () => {
-    setShowAdminPanel(!showAdminPanel);
+    const opening = !showAdminPanel;
+    setShowAdminPanel(opening);
+    try {
+      if (opening) {
+        // push a hash so the admin panel can be linked/shared
+        history.pushState(null, '', '#admin');
+      } else {
+        // remove hash without reloading
+        history.pushState(null, '', window.location.pathname + window.location.search);
+      }
+    } catch (e) {
+      // ignore if history API not available
+    }
   };
+
+  // Open/close admin panel based on URL hash so there's a stable link
+  useEffect(() => {
+    const syncWithHash = () => {
+      if (window.location.hash === '#admin') {
+        setShowAdminPanel(true);
+      } else {
+        setShowAdminPanel(false);
+      }
+    };
+    // initial sync
+    syncWithHash();
+    window.addEventListener('hashchange', syncWithHash);
+    return () => window.removeEventListener('hashchange', syncWithHash);
+  }, []);
 
   return (
     <WebsiteContentProvider>
