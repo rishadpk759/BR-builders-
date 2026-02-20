@@ -14,7 +14,7 @@ const PropertyListingCard: React.FC<PropertyListingCardProps> = ({
 
   return (
     <div
-      className="group flex flex-col gap-3 bg-white dark:bg-background-dark/50 rounded-xl overflow-hidden border border-[#e0e6db] dark:border-[#2a3620] transition-all hover:shadow-xl hover:border-primary/30 cursor-pointer"
+      className="group flex flex-col gap-3 bg-white dark:bg-background-dark/50 rounded-xl overflow-hidden border border-[#e0e6db] dark:border-[#2a3620] transition-transform transform hover:scale-[1.02] hover:shadow-xl hover:border-primary/30 cursor-pointer"
       onClick={() => onPropertyClick(property.id)}
     >
       <div className="relative w-full aspect-[4/3] overflow-hidden">

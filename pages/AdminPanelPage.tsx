@@ -1,4 +1,4 @@
-import React, { useState, useRef, ChangeEvent, FormEvent, useCallback } from 'react';
+import React, { useState, useRef, ChangeEvent, FormEvent, useCallback, useEffect } from 'react';
 import { useWebsiteContent, PropertyData, ConstructionProjectData, FAQItemData, NavLinkData, ServiceCardData, CommitmentItemData, WebsiteContent, NearbyArea } from '../WebsiteContentContext';
 
 interface AdminPanelPageProps {
@@ -221,6 +221,22 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
     uploadImage,
   } = useWebsiteContent();
 
+  // Preserve sidebar scroll position across renders/navigation
+  const asideRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('adminSidebarScroll');
+      if (asideRef.current && saved) asideRef.current.scrollTop = Number(saved);
+    } catch {}
+    const el = asideRef.current;
+    const onScroll = () => {
+      try {
+        if (asideRef.current) sessionStorage.setItem('adminSidebarScroll', String(asideRef.current.scrollTop));
+      } catch {}
+    };
+    el?.addEventListener('scroll', onScroll);
+    return () => el?.removeEventListener('scroll', onScroll);
+  }, []);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [activeContentTab, setActiveContentTab] = useState<string>('meta'); // New state for content sub-tabs
   const [expandedPropertyId, setExpandedPropertyId] = useState<number | 'new' | null>(null); // Allow 'new' for new property form
@@ -711,7 +727,7 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white text-gray-900 p-6 border-r border-gray-200 flex flex-col">
+      <aside ref={asideRef} className="w-64 bg-white text-gray-900 p-6 border-r border-gray-200 flex flex-col sticky top-0 h-screen overflow-y-auto">
         <div className="flex items-center gap-2 text-gray-900 text-xl font-semibold mb-6">
           <span className="material-symbols-outlined text-3xl">admin_panel_settings</span>
           Admin Panel
@@ -1586,7 +1602,7 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
           </section>
         )}
 
-        {activeTab === 'projects' && (
+        {(activeTab === 'projects' || activeTab === 'constructionProjects') && (
           <section>
             <div className="flex justify-between items-center mb-6">
               {renderSectionHeader("Construction Projects")}

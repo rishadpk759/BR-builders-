@@ -62,7 +62,9 @@ const FeaturedProperties: React.FC<FeaturedPropertiesProps> = ({ onPropertyClick
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {featuredPropertiesList.map((property) => (
-          <PropertyCard key={property.id} property={property} onClick={onPropertyClick} />
+          <div key={property.id} className="transform transition duration-500 hover:scale-105">
+            <PropertyCard property={property} onClick={onPropertyClick} />
+          </div>
         ))}
       </div>
     </section>

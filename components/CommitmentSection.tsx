@@ -30,7 +30,9 @@ const CommitmentSection: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-12 px-8">
         {commitmentContent.items.map((item) => (
-          <CommitmentItem key={item.id} item={item} />
+          <div key={item.id} className="transform transition duration-500 hover:scale-105">
+            <CommitmentItem item={item} />
+          </div>
         ))}
       </div>
     </section>

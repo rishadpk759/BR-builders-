@@ -156,29 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigateHome, onNavigateConstr
           </label>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-4">
-          {/* Desktop: full button */}
-          <a
-            className="hidden md:flex min-w-[84px] items-center justify-center overflow-hidden rounded-lg h-10 px-6 bg-[#25D366] text-white text-sm font-bold leading-normal tracking-[0.015em] hover:brightness-105 active:scale-95 transition-all"
-            href={content.header.contactWhatsAppButtonLink || '#'}
-            target={content.header.contactWhatsAppButtonLink && /^https?:\/\//.test(content.header.contactWhatsAppButtonLink) ? '_blank' : undefined}
-            rel="noopener noreferrer"
-          >
-            <i className="fa-brands fa-whatsapp mr-2" aria-hidden="true"></i>
-            <span>{content.header.contactWhatsAppButtonText}</span>
-          </a>
-          {/* Mobile: icon-only */}
-          <a
-            className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-[#25D366] text-white"
-            href={content.header.contactWhatsAppButtonLink || '#'}
-            target={content.header.contactWhatsAppButtonLink && /^https?:\/\//.test(content.header.contactWhatsAppButtonLink) ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            aria-label="WhatsApp"
-          >
-            <i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
-          </a>
-        </div>
+        {/* Right: Actions intentionally removed - floating WhatsApp button is used instead */}
       </div>
     </header>
   );

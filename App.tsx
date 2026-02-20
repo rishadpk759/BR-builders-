@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import FloatingWhatsApp from './components/FloatingWhatsApp';
 import HomePage from './pages/HomePage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import BuyHomesPage from './pages/BuyHomesPage';
@@ -172,6 +173,8 @@ const App: React.FC = () => {
         ) : (
           <>
             <AppContent />
+            {/* Floating WhatsApp button */}
+            <FloatingWhatsApp />
             {/* Password modal for admin access */}
             {showPasswordModal && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
