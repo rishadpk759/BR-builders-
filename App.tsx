@@ -78,7 +78,7 @@ const AppContent: React.FC = () => {
         onNavigateContact={handleNavigateContact}
         activeNav={getActiveNav()}
       />
-      {currentPage === 'home' && <HomePage onPropertyClick={handlePropertyClick} />}
+      {currentPage === 'home' && <HomePage onPropertyClick={handlePropertyClick} onNavigateBuy={handleNavigateBuy} onNavigateRent={handleNavigateRent} />}
       {currentPage === 'construction' && <ConstructionPortfolioPage />}
       {currentPage === 'buy' && <BuyHomesPage onPropertyClick={handlePropertyClick} />}
       {currentPage === 'rent' && <RentPropertiesPage onPropertyClick={handlePropertyClick} />}
@@ -98,9 +98,23 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminAuthenticated, setAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('isAdminAuth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
 
   const toggleAdminPanel = () => {
     const opening = !showAdminPanel;
+    // If opening and not authenticated, show password modal
+    if (opening && !adminAuthenticated) {
+      setShowPasswordModal(true);
+      return;
+    }
     setShowAdminPanel(opening);
     try {
       if (opening) {
@@ -119,7 +133,13 @@ const App: React.FC = () => {
   useEffect(() => {
     const syncWithHash = () => {
       if (window.location.hash === '#admin') {
-        setShowAdminPanel(true);
+        if (adminAuthenticated) {
+          setShowAdminPanel(true);
+        } else {
+          setShowPasswordModal(true);
+          // clear hash to avoid reopening before auth
+          try { history.pushState(null, '', window.location.pathname + window.location.search); } catch {}
+        }
       } else {
         setShowAdminPanel(false);
       }
@@ -128,7 +148,21 @@ const App: React.FC = () => {
     syncWithHash();
     window.addEventListener('hashchange', syncWithHash);
     return () => window.removeEventListener('hashchange', syncWithHash);
-  }, []);
+  }, [adminAuthenticated]);
+
+  const handlePasswordSubmit = () => {
+    const CORRECT = 'BrBad@2026';
+    if (passwordInput === CORRECT) {
+      try { sessionStorage.setItem('isAdminAuth', 'true'); } catch {}
+      setAdminAuthenticated(true);
+      setShowPasswordModal(false);
+      setPasswordInput('');
+      setShowAdminPanel(true);
+      try { history.pushState(null, '', '#admin'); } catch {}
+    } else {
+      alert('Incorrect password');
+    }
+  };
 
   return (
     <WebsiteContentProvider>
@@ -138,14 +172,25 @@ const App: React.FC = () => {
         ) : (
           <>
             <AppContent />
-            {/* Admin Panel Toggle Button */}
-            <button
-              className="fixed bottom-6 left-6 z-[100] bg-blue-600 text-white size-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
-              onClick={toggleAdminPanel}
-              title="Toggle Admin Panel"
-            >
-              <span className="material-symbols-outlined text-3xl">admin_panel_settings</span>
-            </button>
+            {/* Password modal for admin access */}
+            {showPasswordModal && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
+                <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
+                  <h3 className="text-lg font-semibold mb-4">Admin Login</h3>
+                  <input
+                    type="password"
+                    className="form-input w-full mb-4"
+                    placeholder="Enter admin password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => { setShowPasswordModal(false); setPasswordInput(''); }} className="px-4 py-2 rounded border">Cancel</button>
+                    <button onClick={handlePasswordSubmit} className="px-4 py-2 rounded bg-black text-white">Enter</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -10,10 +10,12 @@ import { useWebsiteContent } from '../WebsiteContentContext';
 
 interface HomePageProps {
   onPropertyClick: (id: number) => void;
+  onNavigateBuy: () => void;
+  onNavigateRent: () => void;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onPropertyClick }) => {
-  const { content, isLoading, error } = useWebsiteContent();
+const HomePage: React.FC<HomePageProps> = ({ onPropertyClick, onNavigateBuy, onNavigateRent }) => {
+  const { content, isLoading, error, properties } = useWebsiteContent();
   const contactSectionContent = content.homePage.contactSection;
 
   if (isLoading) {
@@ -35,6 +37,54 @@ const HomePage: React.FC<HomePageProps> = ({ onPropertyClick }) => {
       <StatsSection />
       <ServicesSection />
       <FeaturedProperties onPropertyClick={onPropertyClick} />
+
+      {/* Buy Properties Section */}
+      <section className="px-4 py-12">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-extrabold">{content.buyHomesPage.hero.title}</h2>
+            <p className="text-muted-text mt-1">{content.buyHomesPage.hero.description}</p>
+          </div>
+          <button onClick={onNavigateBuy} className="text-sm font-semibold text-primary">
+            View all {content.buyHomesPage.loadMoreButtonText || 'Buy Properties'}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {properties.filter(p => p.type === 'buy').slice(0,4).map(p => (
+            <div key={p.id}>
+              <div onClick={() => onPropertyClick(p.id)}>
+                <img src={p.images[0] || ''} alt={p.title} className="w-full h-44 object-cover rounded-lg" />
+                <h3 className="mt-2 font-bold">{p.title}</h3>
+                <p className="text-sm text-muted-text">{p.location}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Rent Properties Section */}
+      <section className="px-4 py-12">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-extrabold">{content.rentPropertiesPage.hero.title}</h2>
+            <p className="text-muted-text mt-1">{content.rentPropertiesPage.hero.description}</p>
+          </div>
+          <button onClick={onNavigateRent} className="text-sm font-semibold text-primary">
+            View all {content.rentPropertiesPage.loadMoreButtonText || 'Rent Properties'}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {properties.filter(p => p.type === 'rent').slice(0,4).map(p => (
+            <div key={p.id}>
+              <div onClick={() => onPropertyClick(p.id)}>
+                <img src={p.images[0] || ''} alt={p.title} className="w-full h-44 object-cover rounded-lg" />
+                <h3 className="mt-2 font-bold">{p.title}</h3>
+                <p className="text-sm text-muted-text">{p.location}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
       <CommitmentSection />
 
       {/* Contact Section on Home Page */}

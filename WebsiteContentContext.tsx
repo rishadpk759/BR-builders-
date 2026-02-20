@@ -39,8 +39,10 @@ const uploadFile = async (file: File, bucketName: string, path: string): Promise
     return null;
   }
 
-  const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(path);
-  return publicUrlData.publicUrl;
+  const publicUrlResponse = supabase.storage.from(bucketName).getPublicUrl(path);
+  const publicUrl = (publicUrlResponse && (publicUrlResponse as any).data && (publicUrlResponse as any).data.publicUrl) || null;
+  console.info('[Supabase] uploaded file publicUrl:', publicUrl);
+  return publicUrl;
 };
 
 export interface NearbyArea {
@@ -966,16 +968,26 @@ export const WebsiteContentProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     // Use a stored procedure to update the single-row content to avoid REST field-mapping issues.
     try {
-      const { error: rpcError } = await supabase.rpc('update_website_content', { new_content: updatedContent });
-      if (rpcError) {
-        console.error('Error updating global content via RPC:', rpcError.message);
-        setError(rpcError.message);
+      console.info('[Supabase] upserting global content', { id: currentIdData?.id, preview: { header: updatedContent.header, footer: updatedContent.footer } });
+      // Use upsert to avoid relying on table columns beyond 'content' (safer if schema differs)
+      const upsertPayload: any = { content: updatedContent };
+      if (currentIdData?.id) upsertPayload.id = currentIdData.id;
+
+      const { error: upsertError } = await supabase
+        .from('website_content_single')
+        .upsert(upsertPayload);
+
+      if (upsertError) {
+        console.error('Error upserting global content:', upsertError.message);
+        setError(upsertError.message);
         return;
       }
+
+      console.info('[Supabase] upsert succeeded');
       setContent(updatedContent);
       setError(null);
     } catch (e: any) {
-      console.error('Unexpected error updating global content via RPC:', e);
+      console.error('Unexpected error upserting global content:', e);
       setError(String(e));
     }
   }, [content]); // Added content to dependencies to ensure latest state is used.

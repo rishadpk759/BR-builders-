@@ -33,6 +33,18 @@ const setNestedProperty = (obj: any, path: string, value: any): any => {
   return newObj;
 };
 
+// Helper to extract plain URL from CSS url(...) or return the raw value
+const extractUrl = (raw?: string) => {
+  if (!raw) return '';
+  try {
+    const trimmed = raw.trim();
+    const m = trimmed.match(/^url\((['"]?)(.*)\1\)$/i);
+    return m ? m[2] : trimmed;
+  } catch {
+    return String(raw);
+  }
+};
+
 // Reusable Input Field Component (Styled for Shopify-like admin)
 const AdminInputField: React.FC<{
   label: string;
@@ -721,11 +733,30 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
               <li key={item.id}>
                 <button
                   onClick={() => {
-                    setActiveTab(item.id);
-                    setExpandedPropertyId(null); // Collapse any open forms when changing tabs
+                    // Map certain sidebar items to the Content editor
+                    const contentMap: Record<string, string> = {
+                      aboutUsPage: 'aboutUsPage',
+                      contactPage: 'contactPage',
+                      services: 'homePage',
+                      homePage: 'homePage',
+                      buyHomesPage: 'buyHomesPage',
+                      rentPropertiesPage: 'rentPropertiesPage',
+                      constructionPortfolioPage: 'constructionPortfolioPage',
+                      all: 'homePage',
+                    };
+
+                    if (contentMap[item.id]) {
+                      setActiveTab('content');
+                      setActiveContentTab(contentMap[item.id]);
+                    } else {
+                      setActiveTab(item.id);
+                    }
+
+                    // Collapse any open forms when changing tabs
+                    setExpandedPropertyId(null);
                     setExpandedProjectId(null);
                   }}
-                  className={`flex items-center w-full p-2 rounded-md transition-colors ${activeTab === item.id ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-50'}`}
+                  className={`flex items-center w-full p-2 rounded-md transition-colors ${activeTab === item.id || (activeTab === 'content' && activeContentTab === item.id) ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-50'}`}
                 >
                   <span className="material-symbols-outlined mr-3">{item.icon}</span>
                   {item.label}
@@ -784,7 +815,6 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
         {activeTab === 'navbar' && (
           <section className="bg-white p-6 rounded-lg shadow-md">
             {renderSectionHeader("Header / Navbar")}
-            <AdminInputField label="Logo SVG (HTML)" value={content.header.logoSvg} onChange={(val) => updateSection('header', 'logoSvg', val as string)} type="textarea" rows={5} />
             <ImageUploader
               label="Logo Image (PNG/JPG/SVG)"
               currentImageUrl={content.header.logoImageUrl || ''}
@@ -817,7 +847,6 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
         {activeTab === 'footer' && (
           <section className="bg-white p-6 rounded-lg shadow-md">
             {renderSectionHeader("Footer")}
-            <AdminInputField label="Logo SVG (HTML)" value={content.footer.logoSvg} onChange={(val) => updateSection('footer', 'logoSvg', val as string)} type="textarea" rows={5} />
             <ImageUploader
               label="Footer Logo Image (PNG/JPG/SVG)"
               currentImageUrl={content.footer.logoImageUrl || ''}
@@ -889,7 +918,7 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
               <AdminInputField label="Secondary Button Link" value={content.homePage.hero.secondaryButtonLink} onChange={(val) => updateNestedSection('homePage', 'hero', 'secondaryButtonLink', val as string)} type="url" />
               <ImageUploader
                 label="Background Image (URL or CSS)"
-                currentImageUrl={content.homePage.hero.backgroundImage}
+                currentImageUrl={extractUrl(content.homePage.hero.backgroundImage)}
                 bucketName="page-backgrounds"
                 onImageChange={(url) => updateNestedSection('homePage', 'hero', 'backgroundImage', `url('${url}')`)}
                 onFileSelect={(file) => uploadPageImage(file, 'homePage.hero.backgroundImage')}
@@ -1068,7 +1097,7 @@ const AdminPanelPage: React.FC<AdminPanelPageProps> = ({ onNavigateWebsite }) =>
                       <AdminInputField label="Tag" value={service.tag} onChange={(val) => updateService({ tag: val as string })} />
                       <ImageUploader
                         label="Background Image URL"
-                        currentImageUrl={service.backgroundImage}
+                        currentImageUrl={extractUrl(service.backgroundImage)}
                         bucketName="page-backgrounds"
                         onImageChange={(url) => updateService({ backgroundImage: url })}
                         onFileSelect={(file) => uploadPageImage(file, `homePage.services.servicesList.${service.id}.backgroundImage`)}

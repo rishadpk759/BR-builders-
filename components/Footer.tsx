@@ -15,7 +15,7 @@ const Footer: React.FC = () => {
               const m = trimmed.match(/^url\((['"]?)(.*)\1\)$/i);
               const footerLogoUrl = m ? m[2] : trimmed;
               return footerLogoUrl ? (
-                <img src={footerLogoUrl} alt={content.footer.logoText} className="w-10 h-10 object-contain" />
+                <img src={footerLogoUrl} alt={content.footer.logoText} className="h-10 w-auto max-w-[160px] object-contain" style={{ display: 'block' }} />
               ) : (
                 <div className="size-6 text-primary" dangerouslySetInnerHTML={{ __html: content.footer.logoSvg }} />
               );
